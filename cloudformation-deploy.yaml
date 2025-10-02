@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'AWS Partner Pipeline Analysis - App Runner with File Configuration'
+Description: 'AWS Partner Pipeline Analysis - Streamlit App Runner Deployment'
 
 Parameters:
   AppName:
@@ -8,20 +8,30 @@ Parameters:
     Description: 'Name for the application'
 
 Resources:
-  # App Runner Service using file-based configuration
+  # App Runner Service for public repository (no authentication needed)
   AppRunnerService:
     Type: AWS::AppRunner::Service
     Properties:
       ServiceName: !Sub '${AppName}-service'
       SourceConfiguration:
-        AutoDeploymentsEnabled: true
+        AutoDeploymentsEnabled: false  # Manual deploy only
         CodeRepository:
           RepositoryUrl: 'https://github.com/gclopesaws/aws-partner-hygiene'
           SourceCodeVersion:
             Type: BRANCH
             Value: 'main'
           CodeConfiguration:
-            ConfigurationSource: REPOSITORY
+            ConfigurationSource: API
+            CodeConfigurationValues:
+              Runtime: PYTHON_3
+              BuildCommand: 'pip install streamlit pandas openpyxl python-dateutil'
+              StartCommand: 'streamlit run streamlit_app/app.py --server.port 8080 --server.address 0.0.0.0 --server.headless true'
+              Port: '8080'
+              RuntimeEnvironmentVariables:
+                - Name: STREAMLIT_SERVER_HEADLESS
+                  Value: 'true'
+                - Name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+                  Value: 'false'
       InstanceConfiguration:
         Cpu: '0.5 vCPU'
         Memory: '1 GB'
@@ -44,4 +54,4 @@ Outputs:
   
   Instructions:
     Description: 'Next steps'
-    Value: 'Wait 5-10 minutes for build to complete, then access the URL above'
+    Value: 'Wait 5-10 minutes for build to complete. Access the URL above to use the application.'
