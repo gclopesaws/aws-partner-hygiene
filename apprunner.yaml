@@ -3,13 +3,11 @@ runtime: python3
 build:
   commands:
     build:
-      - echo "Installing dependencies..."
-      - python -m pip install --upgrade pip
-      - python -m pip install -r streamlit_app/requirements_web.txt
-      - echo "Build completed"
+      - pip install --upgrade pip
+      - pip install -r streamlit_app/requirements_minimal.txt
 run:
   runtime-version: latest
-  command: python -m streamlit run streamlit_app/app.py --server.port 8080 --server.address 0.0.0.0 --server.headless true
+  command: streamlit run streamlit_app/app.py --server.port 8080 --server.address 0.0.0.0 --server.headless true
   network:
     port: 8080
   env:

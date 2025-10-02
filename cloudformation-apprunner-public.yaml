@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Partner Pipeline Analysis - App Runner for Public Repository'
+
+Parameters:
+  AppName:
+    Type: String
+    Default: 'aws-partner-hygiene'
+    Description: 'Name for the application'
+
+Resources:
+  # App Runner Service for public repository (no authentication needed)
+  AppRunnerService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: !Sub '${AppName}-service'
+      SourceConfiguration:
+        AutoDeploymentsEnabled: false  # Disabled for public repos without connection
+        CodeRepository:
+          RepositoryUrl: 'https://github.com/gclopesaws/aws-partner-hygiene'
+          SourceCodeVersion:
+            Type: BRANCH
+            Value: 'main'
+          CodeConfiguration:
+            ConfigurationSource: API
+            CodeConfigurationValues:
+              Runtime: PYTHON_3
+              BuildCommand: 'python -m pip install --upgrade pip && python -m pip install -r streamlit_app/requirements_web.txt'
+              StartCommand: 'python -m streamlit run streamlit_app/app.py --server.port 8080 --server.address 0.0.0.0 --server.headless true'
+              Port: '8080'
+              RuntimeEnvironmentVariables:
+                - Name: STREAMLIT_SERVER_HEADLESS
+                  Value: 'true'
+                - Name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+                  Value: 'false'
+      InstanceConfiguration:
+        Cpu: '0.5 vCPU'
+        Memory: '1 GB'
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: '/'
+        Interval: 10
+        Timeout: 5
+        HealthyThreshold: 1
+        UnhealthyThreshold: 5
+
+Outputs:
+  AppRunnerServiceUrl:
+    Description: 'URL of the deployed Streamlit application'
+    Value: !Sub 'https://${AppRunnerService.ServiceUrl}'
+  
+  AppRunnerServiceArn:
+    Description: 'ARN of the App Runner service'
+    Value: !GetAtt AppRunnerService.ServiceArn
+  
+  Instructions:
+    Description: 'Next steps'
+    Value: 'Wait 5-10 minutes for build to complete. Auto-deploy is disabled for public repos without GitHub connection.'

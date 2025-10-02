@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Partner Pipeline Analysis - App Runner deployment from GitHub'
+
+Parameters:
+  AppName:
+    Type: String
+    Default: 'aws-partner-hygiene'
+    Description: 'Name for the application'
+    AllowedPattern: '^[a-z0-9-]+$'
+  
+  GitHubRepoUrl:
+    Type: String
+    Default: 'https://github.com/gclopesaws/aws-partner-hygiene'
+    Description: 'GitHub repository URL'
+  
+  GitHubBranch:
+    Type: String
+    Default: 'main'
+    Description: 'GitHub branch to deploy'
+  
+  InstanceSize:
+    Type: String
+    Default: '0.5 vCPU, 1 GB'
+    AllowedValues:
+      - '0.25 vCPU, 0.5 GB'
+      - '0.5 vCPU, 1 GB'
+      - '1 vCPU, 2 GB'
+    Description: 'App Runner instance size'
+
+Resources:
+  # IAM Role for App Runner
+  AppRunnerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AppName}-apprunner-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: build.apprunner.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+
+  # App Runner Auto Scaling Configuration
+  AutoScalingConfig:
+    Type: AWS::AppRunner::AutoScalingConfiguration
+    Properties:
+      AutoScalingConfigurationName: !Sub '${AppName}-autoscaling'
+      MinSize: 1
+      MaxSize: 5
+      MaxConcurrency: 20
+
+  # App Runner Service
+  AppRunnerService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: !Sub '${AppName}-service'
+      SourceConfiguration:
+        AutoDeploymentsEnabled: true
+        CodeRepository:
+          RepositoryUrl: !Ref GitHubRepoUrl
+          SourceCodeVersion:
+            Type: BRANCH
+            Value: !Ref GitHubBranch
+          CodeConfiguration:
+            ConfigurationSource: API
+            CodeConfigurationValues:
+              Runtime: PYTHON_3
+              BuildCommand: |
+                echo "Installing dependencies..."
+                python -m pip install --upgrade pip
+                python -m pip install -r streamlit_app/requirements_web.txt
+                echo "Build completed successfully"
+              StartCommand: 'python -m streamlit run streamlit_app/app.py --server.port 8080 --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false'
+              Port: '8080'
+              RuntimeEnvironmentVariables:
+                - Name: PYTHONPATH
+                  Value: '/opt/render/project/src:/opt/render/project/src'
+                - Name: STREAMLIT_SERVER_HEADLESS
+                  Value: 'true'
+                - Name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+                  Value: 'false'
+                - Name: STREAMLIT_SERVER_PORT
+                  Value: '8080'
+                - Name: STREAMLIT_SERVER_ADDRESS
+                  Value: '0.0.0.0'
+      AutoScalingConfigurationArn: !GetAtt AutoScalingConfig.AutoScalingConfigurationArn
+      InstanceConfiguration:
+        Cpu: !If
+          - IsSmallInstance
+          - '0.25 vCPU'
+          - !If
+            - IsMediumInstance
+            - '0.5 vCPU'
+            - '1 vCPU'
+        Memory: !If
+          - IsSmallInstance
+          - '0.5 GB'
+          - !If
+            - IsMediumInstance
+            - '1 GB'
+            - '2 GB'
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: '/'
+        Interval: 30
+        Timeout: 10
+        HealthyThreshold: 1
+        UnhealthyThreshold: 5
+
+  # CloudWatch Log Group
+  AppRunnerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/apprunner/${AppName}'
+      RetentionInDays: 14
+
+Conditions:
+  IsSmallInstance: !Equals [!Ref InstanceSize, '0.25 vCPU, 0.5 GB']
+  IsMediumInstance: !Equals [!Ref InstanceSize, '0.5 vCPU, 1 GB']
+
+Outputs:
+  AppRunnerServiceUrl:
+    Description: 'URL of the deployed Streamlit application'
+    Value: !Sub 'https://${AppRunnerService.ServiceUrl}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ServiceUrl'
+  
+  AppRunnerServiceArn:
+    Description: 'ARN of the App Runner service'
+    Value: !GetAtt AppRunnerService.ServiceArn
+    Export:
+      Name: !Sub '${AWS::StackName}-ServiceArn'
+  
+  AppRunnerServiceId:
+    Description: 'Service ID for monitoring'
+    Value: !GetAtt AppRunnerService.ServiceId
+    Export:
+      Name: !Sub '${AWS::StackName}-ServiceId'
+  
+  EstimatedMonthlyCost:
+    Description: 'Estimated monthly cost (USD)'
+    Value: '$15-25 (0.25 vCPU) | $30-50 (0.5 vCPU) | $60-100 (1 vCPU)'
+  
+  NextSteps:
+    Description: 'What to do next'
+    Value: 'App Runner will automatically deploy from your GitHub repo. Any push to main branch will trigger a new deployment.'

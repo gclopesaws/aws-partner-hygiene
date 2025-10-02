@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Partner Pipeline Analysis - App Runner with GitHub Connection'
+
+Parameters:
+  AppName:
+    Type: String
+    Default: 'aws-partner-hygiene'
+    Description: 'Name for the application'
+
+Resources:
+  # GitHub Connection for App Runner
+  GitHubConnection:
+    Type: AWS::CodeStarConnections::Connection
+    Properties:
+      ConnectionName: !Sub '${AppName}-github-connection'
+      ProviderType: GitHub
+
+  # App Runner Service with proper authentication
+  AppRunnerService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: !Sub '${AppName}-service'
+      SourceConfiguration:
+        AutoDeploymentsEnabled: true
+        CodeRepository:
+          RepositoryUrl: 'https://github.com/gclopesaws/aws-partner-hygiene'
+          SourceCodeVersion:
+            Type: BRANCH
+            Value: 'main'
+          CodeConfiguration:
+            ConfigurationSource: REPOSITORY
+          SourceDirectory: '/'
+        ConnectionArn: !Ref GitHubConnection
+      InstanceConfiguration:
+        Cpu: '0.5 vCPU'
+        Memory: '1 GB'
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: '/'
+        Interval: 10
+        Timeout: 5
+        HealthyThreshold: 1
+        UnhealthyThreshold: 5
+
+Outputs:
+  AppRunnerServiceUrl:
+    Description: 'URL of the deployed Streamlit application'
+    Value: !Sub 'https://${AppRunnerService.ServiceUrl}'
+  
+  AppRunnerServiceArn:
+    Description: 'ARN of the App Runner service'
+    Value: !GetAtt AppRunnerService.ServiceArn
+  
+  GitHubConnectionArn:
+    Description: 'GitHub Connection ARN (needs manual authorization)'
+    Value: !Ref GitHubConnection
+  
+  Instructions:
+    Description: 'IMPORTANT: Manual step required'
+    Value: 'Go to AWS Console > CodeStar Connections and authorize the GitHub connection, then wait for App Runner to build'
