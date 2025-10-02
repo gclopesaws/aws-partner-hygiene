@@ -1,0 +1,34 @@
+# AWS Partner Pipeline Analysis - Requirements
+# Dependências necessárias para executar todos os scripts de análise de pipeline
+
+# Manipulação de dados
+pandas>=2.0.0
+
+# Leitura de arquivos Excel
+openpyxl>=3.1.0
+xlrd>=2.0.1
+
+# Leitura de arquivos HTML (usado pelo pandas.read_html)
+lxml>=4.9.0
+html5lib>=1.1
+
+# Manipulação de datas e tipos
+python-dateutil>=2.8.0
+
+# Bibliotecas padrão do Python (já incluídas, listadas para referência)
+# - sys
+# - os
+# - subprocess
+# - datetime
+# - collections
+# - typing
+# - re
+# - urllib.parse
+# - locale
+
+# Dependências opcionais para melhor performance
+beautifulsoup4>=4.12.0
+
+# Para desenvolvimento e testes (opcional)
+pytest>=7.0.0
+pytest-cov>=4.0.0

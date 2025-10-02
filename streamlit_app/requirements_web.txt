@@ -1,0 +1,48 @@
+# AWS Partner Pipeline Analysis - Web Interface Requirements
+# Dependências para interface Streamlit + dependências do sistema existente
+
+# Interface Web
+streamlit>=1.28.0
+
+# Dependências do sistema existente (copiadas de requirements.txt)
+# Manipulação de dados
+pandas>=2.0.0
+
+# Leitura de arquivos Excel - MÚLTIPLOS ENGINES PARA COMPATIBILIDADE
+openpyxl>=3.1.0
+xlrd>=2.0.1
+
+# Suporte adicional para arquivos Excel antigos
+xlwt>=1.3.0
+
+# Leitura de arquivos HTML (usado pelo pandas.read_html)
+lxml>=4.9.0
+html5lib>=1.1
+
+# Manipulação de datas e tipos
+python-dateutil>=2.8.0
+
+# Dependências opcionais para melhor performance e compatibilidade
+beautifulsoup4>=4.12.0
+
+# Para leitura robusta de diferentes formatos
+chardet>=5.0.0
+
+# Bibliotecas padrão do Python (já incluídas, listadas para referência)
+# - sys
+# - os
+# - subprocess
+# - datetime
+# - collections
+# - typing
+# - re
+# - urllib.parse
+# - locale
+# - tempfile
+# - zipfile
+# - pathlib
+# - shutil
+
+# Para desenvolvimento e testes (opcional)
+pytest>=7.0.0
+pytest-cov>=4.0.0
